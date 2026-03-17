@@ -1,0 +1,141 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+local ESP = {}
+
+local bones = {
+    {"Head","UpperTorso"},
+    {"UpperTorso","LowerTorso"},
+    {"UpperTorso","LeftUpperArm"},
+    {"LeftUpperArm","LeftLowerArm"},
+    {"UpperTorso","RightUpperArm"},
+    {"RightUpperArm","RightLowerArm"},
+    {"LowerTorso","LeftUpperLeg"},
+    {"LeftUpperLeg","LeftLowerLeg"},
+    {"LowerTorso","RightUpperLeg"},
+    {"RightUpperLeg","RightLowerLeg"}
+}
+
+local function createESP(player)
+    if player == LocalPlayer then return end
+
+    local box = Drawing.new("Square")
+    box.Thickness = 2
+    box.Filled = false
+
+    local line = Drawing.new("Line")
+    line.Thickness = 6
+
+    local text = Drawing.new("Text")
+    text.Size = 16
+    text.Center = true
+    text.Outline = true
+
+    local healthBar = Drawing.new("Line")
+    healthBar.Thickness = 12 -- شريط دم عريض جداً
+
+    local skeleton = {}
+    for i = 1,#bones do
+        local l = Drawing.new("Line")
+        l.Thickness = 2
+        table.insert(skeleton,l)
+    end
+
+    ESP[player] = {
+        box = box,
+        line = line,
+        text = text,
+        healthBar = healthBar,
+        skeleton = skeleton
+    }
+end
+
+for _,p in pairs(Players:GetPlayers()) do
+    createESP(p)
+end
+
+Players.PlayerAdded:Connect(createESP)
+
+RunService.RenderStepped:Connect(function()
+    local rgb = Color3.fromHSV(tick()%5/5,1,1)
+
+    for player,esp in pairs(ESP) do
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+
+            local root = char.HumanoidRootPart
+            local humanoid = char.Humanoid
+
+            local pos,onScreen = Camera:WorldToViewportPoint(root.Position)
+
+            if onScreen then
+
+                local top = Camera:WorldToViewportPoint(root.Position + Vector3.new(0,3,0))
+                local bottom = Camera:WorldToViewportPoint(root.Position - Vector3.new(0,3,0))
+                local size = top.Y - bottom.Y
+                local width = size/1.6
+
+                esp.box.Size = Vector2.new(width,size)
+                esp.box.Position = Vector2.new(pos.X-width/2,pos.Y-size/2)
+                esp.box.Color = rgb
+                esp.box.Visible = true
+
+                esp.line.From = Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y)
+                esp.line.To = Vector2.new(pos.X,pos.Y)
+                esp.line.Color = rgb
+                esp.line.Visible = true
+
+                local distance = math.floor((root.Position - Camera.CFrame.Position).Magnitude)
+
+                esp.text.Position = Vector2.new(pos.X,pos.Y-size/2-15)
+                esp.text.Text = player.Name.." | "..distance.."m"
+                esp.text.Color = rgb
+                esp.text.Visible = true
+
+                local hp = humanoid.Health / humanoid.MaxHealth
+                local barHeight = size * hp
+
+                local barX = pos.X - width/2 - 10
+                local barBottom = pos.Y + size/2
+
+                esp.healthBar.From = Vector2.new(barX,barBottom)
+                esp.healthBar.To = Vector2.new(barX,barBottom-barHeight)
+
+                esp.healthBar.Color = Color3.fromRGB(
+                    255 - (hp*255),
+                    hp*255,
+                    0
+                )
+
+                esp.healthBar.Visible = true
+
+                for i,b in pairs(bones) do
+                    local p1 = char:FindFirstChild(b[1])
+                    local p2 = char:FindFirstChild(b[2])
+
+                    if p1 and p2 then
+                        local v1 = Camera:WorldToViewportPoint(p1.Position)
+                        local v2 = Camera:WorldToViewportPoint(p2.Position)
+
+                        esp.skeleton[i].From = Vector2.new(v1.X,v1.Y)
+                        esp.skeleton[i].To = Vector2.new(v2.X,v2.Y)
+                        esp.skeleton[i].Color = rgb
+                        esp.skeleton[i].Visible = true
+                    end
+                end
+
+            else
+                esp.box.Visible = false
+                esp.line.Visible = false
+                esp.text.Visible = false
+                esp.healthBar.Visible = false
+
+                for _,l in pairs(esp.skeleton) do
+                    l.Visible = false
+                end
+            end
+        end
+    end
+end)
