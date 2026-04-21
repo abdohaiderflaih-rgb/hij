@@ -1,0 +1,136 @@
+--[[
+Skybox Emote: 93224413172183
+Required Bundle: https://www.roblox.com/bundles/148351107651039/pro-builder
+]]
+
+function missing(t, f, fallback)
+    if type(f) == t then return f end
+    return fallback 
+end
+
+cloneref = missing("function", cloneref, function(...) return ... end)
+
+local Services = setmetatable({}, {
+    __index = function(_, name)
+        return cloneref(game:GetService(name))
+    end
+})
+
+local Players = Services.Players
+local RunService = Services.RunService
+local UserInputService = Services.UserInputService
+local TweenService = Services.TweenService
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+--// Settings
+local Settings = {}
+Settings["Stop On Move"] = true
+Settings["Fade In"]     = 0.1
+Settings["Fade Out"]    = 0.1
+Settings["Weight"]      = 1
+Settings["Speed"]       = 1
+Settings["Allow Invisible"]    = true
+
+local CurrentTrack
+local lastPosition = character.PrimaryPart and character.PrimaryPart.Position or Vector3.new()
+
+local function extractIdFromInput(input)
+    local num = tonumber(input)
+    if num then return num end
+    return tonumber(string.match(input, "%d+"))
+end
+
+local function LoadTrack(id)
+    if CurrentTrack then CurrentTrack:Stop(0) end
+    local animId = "rbxassetid://" .. tostring(id)
+    local newAnim = Instance.new("Animation")
+    newAnim.AnimationId = animId
+    local newTrack = humanoid:LoadAnimation(newAnim)
+    newTrack.Priority = Enum.AnimationPriority.Action4
+    newTrack:Play(Settings["Fade In"], Settings["Weight"], Settings["Speed"])
+    CurrentTrack = newTrack
+    return newTrack
+end
+
+--// UI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrutonTeamGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = Services.CoreGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 340, 0, 180)
+mainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "Bruton Team"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Parent = mainFrame
+
+local emoteBox = Instance.new("TextBox")
+emoteBox.Size = UDim2.new(1, -20, 0, 35)
+emoteBox.Position = UDim2.new(0, 10, 0, 50)
+emoteBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+emoteBox.Text = "93224413172183" 
+emoteBox.TextColor3 = Color3.new(1, 1, 1)
+emoteBox.Font = Enum.Font.Gotham
+emoteBox.Parent = mainFrame
+Instance.new("UICorner", emoteBox).CornerRadius = UDim.new(0, 6)
+
+local playButton = Instance.new("TextButton")
+playButton.Size = UDim2.new(0.45, 0, 0, 40)
+playButton.Position = UDim2.new(0.025, 0, 0, 100)
+playButton.Text = "PLAY"
+playButton.Font = Enum.Font.GothamBold
+playButton.TextColor3 = Color3.new(1, 1, 1)
+playButton.Parent = mainFrame
+Instance.new("UICorner", playButton).CornerRadius = UDim.new(0, 6)
+
+local stopButton = Instance.new("TextButton")
+stopButton.Size = UDim2.new(0.45, 0, 0, 40)
+stopButton.Position = UDim2.new(0.525, 0, 0, 100)
+stopButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+stopButton.Text = "STOP"
+stopButton.Font = Enum.Font.GothamBold
+stopButton.TextColor3 = Color3.new(1, 1, 1)
+stopButton.Parent = mainFrame
+Instance.new("UICorner", stopButton).CornerRadius = UDim.new(0, 6)
+
+--// Rainbow Effect Logic
+RunService.RenderStepped:Connect(function()
+    local hue = tick() % 5 / 5
+    local color = Color3.fromHSV(hue, 1, 1)
+    title.TextColor3 = color
+    playButton.BackgroundColor3 = color
+    
+    -- Stop on move logic
+    if character.PrimaryPart and Settings["Stop On Move"] and CurrentTrack then
+        local moved = (character.PrimaryPart.Position - lastPosition).Magnitude > 0.1
+        if moved then 
+            CurrentTrack:Stop() 
+            CurrentTrack = nil
+        end
+        lastPosition = character.PrimaryPart.Position
+    end
+end)
+
+playButton.MouseButton1Click:Connect(function()
+    local id = extractIdFromInput(emoteBox.Text)
+    if id then LoadTrack(id) end
+end)
+
+stopButton.MouseButton1Click:Connect(function()
+    if CurrentTrack then CurrentTrack:Stop() CurrentTrack = nil end
+end)
