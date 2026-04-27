@@ -1,0 +1,22 @@
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.ResetOnSpawn = false
+local button = Instance.new("TextButton", gui)
+button.Size = UDim2.new(0, 135, 0, 50) -- added size again
+button.Position = UDim2.new(1, -185, 0.5, -25) -- moved more inward
+button.Text = "Drift Mode by Felix: OFF"
+button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.TextScaled = true
+button.BorderSizePixel = 0
+button.AutoButtonColor = true
+local normalGravity = 196.2
+local lowGravity = 50
+local enabled = false
+button.MouseButton1Click:Connect(function()
+enabled = not enabled
+Workspace.Gravity = enabled and lowGravity or normalGravity
+button.Text = enabled and "Drift Mode by Felix: ON" or "Drift Mode by Felix: OFF"
+end)
