@@ -34,7 +34,7 @@ local function createESP(player)
     text.Outline = true
 
     local healthBar = Drawing.new("Line")
-    healthBar.Thickness = 12 -- شريط دم عريض جداً
+    healthBar.Thickness = 12
 
     local skeleton = {}
     for i = 1,#bones do
@@ -58,10 +58,34 @@ end
 
 Players.PlayerAdded:Connect(createESP)
 
+Players.PlayerRemoving:Connect(function(player)
+    if ESP[player] then
+        local esp = ESP[player]
+
+        if esp.box then esp.box:Remove() end
+        if esp.line then esp.line:Remove() end
+        if esp.text then esp.text:Remove() end
+        if esp.healthBar then esp.healthBar:Remove() end
+
+        if esp.skeleton then
+            for _,l in pairs(esp.skeleton) do
+                if l then l:Remove() end
+            end
+        end
+
+        ESP[player] = nil
+    end
+end)
+
 RunService.RenderStepped:Connect(function()
     local rgb = Color3.fromHSV(tick()%5/5,1,1)
 
     for player,esp in pairs(ESP) do
+
+        if not player or not player.Parent then
+            continue
+        end
+
         local char = player.Character
         if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
 
@@ -123,6 +147,8 @@ RunService.RenderStepped:Connect(function()
                         esp.skeleton[i].To = Vector2.new(v2.X,v2.Y)
                         esp.skeleton[i].Color = rgb
                         esp.skeleton[i].Visible = true
+                    else
+                        esp.skeleton[i].Visible = false
                     end
                 end
 
@@ -135,6 +161,15 @@ RunService.RenderStepped:Connect(function()
                 for _,l in pairs(esp.skeleton) do
                     l.Visible = false
                 end
+            end
+        else
+            esp.box.Visible = false
+            esp.line.Visible = false
+            esp.text.Visible = false
+            esp.healthBar.Visible = false
+
+            for _,l in pairs(esp.skeleton) do
+                l.Visible = false
             end
         end
     end
